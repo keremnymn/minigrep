@@ -7,23 +7,31 @@ pub struct Config {
 }
 
 impl Config {
-    fn return_config(args: &[String]) -> Config {
-        let query = args[1].clone();
-        let file_path = args[2].clone();
+    pub fn new(
+        mut args: impl Iterator<Item = String>,
+    ) -> Result<Config, &'static str> {
+
+        args.next();
+
+        let query = match args.next() {
+            Some(arg) => arg,
+            None => return Err("Please provide a query string.")
+        };
+
+        let file_path = match args.next() {
+            Some(arg) => arg,
+            None => return Err("Please provide a file path.")
+        };
 
         let ignore_case = env::var("IGNORE_CASE").is_ok();
 
-        println!("is ignoring case?: {ignore_case}");
-
-        Config { query, file_path, ignore_case }
-    }
-
-
-    pub fn new(args: &[String]) -> Result<Config, &'static str> {
-        match args.len() {
-            3 => Ok(Self::return_config(&args)),
-            _ => Err("There should be two arguments")
-        }
+        Ok(
+            Config { 
+                query, 
+                file_path, 
+                ignore_case
+             }
+        )
     }
 
 
@@ -46,15 +54,10 @@ pub fn run(config: Config) -> Result<(), Box<dyn Error>> {
 }
 
 fn search<'a>(query: &str, contents: &'a str) -> Vec<&'a str> {
-    let mut result = Vec::new();
-
-    for line in contents.lines() {
-        if line.contains(query) {
-            result.push(line);
-        }
-    }
-
-    result
+    contents
+        .lines()
+        .filter(|line| line.contains(query))
+        .collect()
 }
 
 fn search_case_insensitive<'a>(
